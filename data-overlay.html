@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PNG图片合成工具 - 批量叠加与导出</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            min-height: 600px;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: #f8f9fa;
+            padding: 25px;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+        }
+
+        .canvas-area {
+            flex: 1;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .upload-section {
+            margin-bottom: 25px;
+        }
+
+        .upload-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            background: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #4CAF50;
+            background: #f0f8f0;
+        }
+
+        .upload-area.dragover {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 2.5em;
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.1em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .layer-item {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: move;
+        }
+
+        .layer-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .layer-item.selected {
+            border: 2px solid #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+            background: #e8f5e8;
+        }
+        
+        .layer-item.selected:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15), 0 0 0 2px rgba(76, 175, 80, 0.3);
+        }
+
+        .layer-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        .layer-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .layer-thumbnail {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-right: 12px;
+        }
+
+        .layer-info {
+            flex: 1;
+        }
+
+        .layer-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+            margin-bottom: 4px;
+        }
+
+        .layer-type {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .layer-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-size: 0.85em;
+            color: #555;
+            min-width: 60px;
+        }
+
+        .opacity-slider {
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .opacity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+
+        .delete-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #ff3742;
+        }
+
+        .canvas-container {
+            position: relative;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #f9f9f9;
+            margin-bottom: 25px;
+        }
+
+        .canvas-main {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .canvas-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #f57c00;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .position-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .position-btn {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .position-btn:hover {
+            background: #bbdefb;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                order: 2;
+            }
+            
+            .canvas-area {
+                order: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .canvas-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 返回按钮 -->
+    <div style="position: fixed; top: 20px; left: 20px; z-index: 1000;">
+        <a href="index.html" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-radius: 25px; text-decoration: none; color: #333; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.2);">
+            <span style="font-size: 1.2em;">←</span>
+            返回主页
+        </a>
+    </div>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 PNG图片合成工具</h1>
+            <p>上传底图，批量导入PNG图片进行叠加合成，支持拖拽排序、透明度调整和图片缩放</p>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="upload-section">
+                    <div class="upload-title">📁 底图设置</div>
+                    <div class="upload-area" id="backgroundUpload">
+                        <div class="upload-icon">🏞️</div>
+                        <div class="upload-text">点击上传底图</div>
+                        <div class="upload-hint">支持 JPG、PNG、GIF 格式</div>
+                        <input type="file" id="backgroundInput" class="file-input" accept="image/*">
+                    </div>
+                </div>
+
+                <div class="upload-section">
+                    <div class="upload-title">🖼️ PNG图层管理</div>
+                    <div class="upload-area" id="layerUpload">
+                        <div class="upload-icon">📚</div>
+                        <div class="upload-text">批量导入PNG图片</div>
+                        <div class="upload-hint">支持多选，透明背景将叠加在底图上</div>
+                        <input type="file" id="layerInput" class="file-input" multiple accept="image/png,image/*">
+                    </div>
+                </div>
+
+                <div id="layerList">
+                    <!-- 动态生成的图层项 -->
+                </div>
+            </div>
+
+            <div class="canvas-area">
+                <div class="canvas-controls">
+                    <button id="undoBtn" class="btn btn-warning" disabled>
+                        <span>↶</span> 撤销
+                    </button>
+                    <button id="redoBtn" class="btn btn-warning" disabled>
+                        <span>↷</span> 重做
+                    </button>
+                    <button id="arrangeBtn" class="btn btn-secondary">
+                        <span>📋</span> 一键排列图片
+                    </button>
+                    <button id="clearBtn" class="btn btn-secondary">
+                        <span>🗑️</span> 清空图层
+                    </button>
+                    <button id="exportBtn" class="btn btn-primary" disabled>
+                        <span>💾</span> 导出图片
+                    </button>
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="mainCanvas" class="canvas-main"></canvas>
+                </div>
+
+                <div id="status"></div>
+                
+                <div class="status info">
+                    <strong>💡 使用提示：</strong><br>
+                    • 点击图层控制面板中的【放大】【缩小】按钮调整图片尺寸<br>
+                    • 在画布上鼠标悬停在图片上，使用滚轮快速缩放<br>
+                    • 选中图层后，按键盘 <strong>+/-</strong> 键缩放，按 <strong>0</strong> 键重置<br>
+                    • 拖拽图片可移动位置，支持撤销/重做操作
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ImageComposer {
+            constructor() {
+                this.backgroundImage = null;
+                this.layers = [];
+                this.canvas = document.getElementById('mainCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.history = [];
+                this.historyIndex = -1;
+                this.isDragging = false;
+                this.dragLayer = null;
+                this.dragOffset = { x: 0, y: 0 };
+                this.selectedLayerId = null; // 选中的图层ID
+                
+                this.initializeElements();
+                this.setupEventListeners();
+                this.setupCanvas();
+            }
+
+            initializeElements() {
+                this.backgroundUpload = document.getElementById('backgroundUpload');
+                this.backgroundInput = document.getElementById('backgroundInput');
+                this.layerUpload = document.getElementById('layerUpload');
+                this.layerInput = document.getElementById('layerInput');
+                this.layerList = document.getElementById('layerList');
+                this.undoBtn = document.getElementById('undoBtn');
+                this.redoBtn = document.getElementById('redoBtn');
+                this.arrangeBtn = document.getElementById('arrangeBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.exportBtn = document.getElementById('exportBtn');
+                this.status = document.getElementById('status');
+            }
+
+            setupEventListeners() {
+                // 背景图上传
+                this.backgroundUpload.addEventListener('click', () => this.backgroundInput.click());
+                this.backgroundInput.addEventListener('change', (e) => this.handleBackgroundUpload(e.target.files[0]));
+
+                // PNG图层上传
+                this.layerUpload.addEventListener('click', () => this.layerInput.click());
+                this.layerInput.addEventListener('change', (e) => this.handleLayerUpload(e.target.files));
+
+                // 按钮事件
+                this.undoBtn.addEventListener('click', () => this.undo());
+                this.redoBtn.addEventListener('click', () => this.redo());
+                this.arrangeBtn.addEventListener('click', () => this.arrangeImages());
+                this.clearBtn.addEventListener('click', () => this.clearLayers());
+                this.exportBtn.addEventListener('click', () => this.exportImage());
+
+                // Canvas拖拽事件
+                this.canvas.addEventListener('mousedown', (e) => this.startDrag(e));
+                this.canvas.addEventListener('mousemove', (e) => this.drag(e));
+                this.canvas.addEventListener('mouseup', () => this.endDrag());
+                this.canvas.addEventListener('mouseleave', () => this.endDrag());
+                
+                // 画布点击事件，用于选中图层
+                this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+                
+                // 鼠标滚轮缩放事件
+                this.canvas.addEventListener('wheel', (e) => this.handleWheelScale(e));
+                
+                // 键盘快捷键
+                document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
+
+                // 拖拽排序
+                this.layerList.addEventListener('dragstart', (e) => this.handleDragStart(e));
+                this.layerList.addEventListener('dragover', (e) => this.handleDragOver(e));
+                this.layerList.addEventListener('drop', (e) => this.handleDrop(e));
+                this.layerList.addEventListener('dragend', (e) => this.handleDragEnd(e));
+            }
+
+            setupCanvas() {
+                // 设置Canvas尺寸
+                this.canvas.width = 800;
+                this.canvas.height = 600;
+                
+                // 设置白色背景
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            handleBackgroundUpload(file) {
+                if (!file || !file.type.startsWith('image/')) {
+                    this.showStatus('请选择有效的图片文件！', 'error');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        this.backgroundImage = {
+                            image: img,
+                            name: file.name,
+                            dataUrl: e.target.result
+                        };
+                        
+                        // 调整画布大小与底图一致
+                        this.canvas.width = img.width;
+                        this.canvas.height = img.height;
+                        
+                        this.renderCanvas();
+                        this.showStatus('底图上传成功！画布已调整为底图大小', 'success');
+                        this.saveHistory();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            handleLayerUpload(files) {
+                const pngFiles = Array.from(files).filter(file => 
+                    file.type === 'image/png' || file.name.toLowerCase().endsWith('.png')
+                );
+
+                if (pngFiles.length === 0) {
+                    this.showStatus('请选择PNG格式的图片！', 'error');
+                    return;
+                }
+
+                let loadedCount = 0;
+                pngFiles.forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            // 计算初始位置，确保图片不会完全重叠
+                            // 使用错开的网格布局，避免大量图片重叠
+                            const gridSize = 40; // 每个图片的间距
+                            const initialX = 50 + (index % 4) * gridSize;
+                            const initialY = 50 + Math.floor(index / 4) * gridSize;
+                            
+                            const layer = {
+                                id: Date.now() + index,
+                                image: img,
+                                name: file.name,
+                                dataUrl: e.target.result,
+                                opacity: 1,
+                                x: initialX,
+                                y: initialY,
+                                width: img.width,
+                                height: img.height,
+                                visible: true
+                            };
+                            
+                            this.layers.push(layer);
+                            loadedCount++;
+                            
+                            if (loadedCount === pngFiles.length) {
+                                // 为了避免图片重叠，导入后自动选中最后一张图片并移到最上层
+                                this.selectLayer(this.layers[this.layers.length - 1].id);
+                                this.renderLayersList();
+                                this.renderCanvas();
+                                this.showStatus(`成功导入 ${pngFiles.length} 张PNG图片！`, 'success');
+                                this.saveHistory();
+                                this.updateButtons();
+                            }
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            renderLayersList() {
+                this.layerList.innerHTML = '';
+                
+                // 反向显示，上面的图层在前面
+                [...this.layers].reverse().forEach((layer, displayIndex) => {
+                    const actualIndex = this.layers.length - 1 - displayIndex;
+                    
+                    const layerItem = document.createElement('div');
+                    layerItem.className = 'layer-item';
+                    // 添加选中状态
+                    if (this.selectedLayerId === layer.id) {
+                        layerItem.classList.add('selected');
+                    }
+                    layerItem.draggable = true;
+                    layerItem.dataset.layerId = layer.id;
+                    layerItem.dataset.layerIndex = actualIndex;
+                    
+                    layerItem.innerHTML = `
+                        <div class="layer-header">
+                            <img src="${layer.dataUrl}" class="layer-thumbnail" alt="${layer.name}">
+                            <div class="layer-info">
+                                <div class="layer-name">${layer.name}</div>
+                                <div class="layer-type">PNG 图层 ${displayIndex + 1}</div>
+                            </div>
+                        </div>
+                        <div class="layer-controls">
+                            <div class="control-group">
+                                <label>透明度:</label>
+                                <input type="range" class="opacity-slider" 
+                                       min="0" max="100" value="${layer.opacity * 100}"
+                                       data-layer-id="${layer.id}">
+                                <span>${Math.round(layer.opacity * 100)}%</span>
+                            </div>
+                            <div class="control-group">
+                                <label>缩放:</label>
+                                <div class="position-controls">
+                                    <button class="position-btn" onclick="composer.scaleLayer(${layer.id}, 1.2)">放大</button>
+                                    <button class="position-btn" onclick="composer.scaleLayer(${layer.id}, 0.8)">缩小</button>
+                                    <button class="position-btn" onclick="composer.resetLayerScale(${layer.id})">重置</button>
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label>位置:</label>
+                                <div class="position-controls">
+                                    <button class="position-btn" onclick="composer.moveLayer(${layer.id}, 'up')">↑</button>
+                                    <button class="position-btn" onclick="composer.moveLayer(${layer.id}, 'left')">←</button>
+                                    <button class="position-btn" onclick="composer.moveLayer(${layer.id}, 'center')">中</button>
+                                    <button class="position-btn" onclick="composer.moveLayer(${layer.id}, 'right')">→</button>
+                                    <button class="position-btn" onclick="composer.moveLayer(${layer.id}, 'down')">↓</button>
+                                </div>
+                            </div>
+                            <button class="delete-btn" onclick="composer.deleteLayer(${layer.id})">
+                                删除图层
+                            </button>
+                        </div>
+                    `;
+                    
+                    // 透明度滑块事件
+                    const opacitySlider = layerItem.querySelector('.opacity-slider');
+                    opacitySlider.addEventListener('input', (e) => {
+                        const opacity = e.target.value / 100;
+                        this.updateLayerOpacity(layer.id, opacity);
+                        e.target.nextElementSibling.textContent = `${e.target.value}%`;
+                    });
+                    
+                    // 添加图层点击事件，实现选中效果
+                    layerItem.addEventListener('click', (e) => {
+                        // 阻止事件冒泡，防止触发拖拽
+                        e.stopPropagation();
+                        this.selectLayer(layer.id);
+                    });
+                    
+                    this.layerList.appendChild(layerItem);
+                });
+            }
+
+            renderCanvas() {
+                // 清除画布
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // 绘制白色背景
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // 绘制背景图（保持原始宽高比）
+                if (this.backgroundImage) {
+                    const img = this.backgroundImage.image;
+                    const canvasAspect = this.canvas.width / this.canvas.height;
+                    const imgAspect = img.width / img.height;
+                    
+                    let drawWidth, drawHeight, drawX, drawY;
+                    
+                    if (imgAspect > canvasAspect) {
+                        // 图片更宽，以宽度为准，高度居中
+                        drawWidth = this.canvas.width;
+                        drawHeight = this.canvas.width / imgAspect;
+                        drawX = 0;
+                        drawY = (this.canvas.height - drawHeight) / 2;
+                    } else {
+                        // 图片更高，以高度为准，宽度居中
+                        drawHeight = this.canvas.height;
+                        drawWidth = this.canvas.height * imgAspect;
+                        drawX = (this.canvas.width - drawWidth) / 2;
+                        drawY = 0;
+                    }
+                    
+                    this.ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+                }
+                
+                // 绘制所有图层
+                this.layers.forEach(layer => {
+                    if (layer.visible) {
+                        this.ctx.globalAlpha = layer.opacity;
+                        this.ctx.drawImage(
+                            layer.image,
+                            layer.x,
+                            layer.y,
+                            layer.width,
+                            layer.height
+                        );
+                    }
+                });
+                
+                this.ctx.globalAlpha = 1;
+                
+                // 如果有选中的图层，绘制高亮边框
+                if (this.selectedLayerId) {
+                    const selectedLayer = this.layers.find(layer => layer.id === this.selectedLayerId);
+                    if (selectedLayer && selectedLayer.visible) {
+                        // 绘制虚线边框
+                        this.ctx.setLineDash([10, 5]);
+                        this.ctx.strokeStyle = '#4CAF50';
+                        this.ctx.lineWidth = 3;
+                        this.ctx.strokeRect(
+                            selectedLayer.x - 5,
+                            selectedLayer.y - 5,
+                            selectedLayer.width + 10,
+                            selectedLayer.height + 10
+                        );
+                        
+                        // 恢复实线
+                        this.ctx.setLineDash([]);
+                    }
+                }
+            }
+
+            updateLayerOpacity(layerId, opacity) {
+                const layer = this.layers.find(l => l.id === layerId);
+                if (layer) {
+                    layer.opacity = opacity;
+                    this.renderCanvas();
+                }
+            }
+
+            moveLayer(layerId, direction) {
+                const layer = this.layers.find(l => l.id === layerId);
+                if (!layer) return;
+                
+                const step = 20;
+                switch (direction) {
+                    case 'up':
+                        layer.y = Math.max(0, layer.y - step);
+                        break;
+                    case 'down':
+                        layer.y = Math.min(this.canvas.height - layer.height, layer.y + step);
+                        break;
+                    case 'left':
+                        layer.x = Math.max(0, layer.x - step);
+                        break;
+                    case 'right':
+                        layer.x = Math.min(this.canvas.width - layer.width, layer.x + step);
+                        break;
+                    case 'center':
+                        layer.x = (this.canvas.width - layer.width) / 2;
+                        layer.y = (this.canvas.height - layer.height) / 2;
+                        break;
+                }
+                
+                this.renderCanvas();
+                this.saveHistory();
+            }
+
+            scaleLayer(layerId, scaleFactor) {
+                const layer = this.layers.find(l => l.id === layerId);
+                if (!layer) return;
+                
+                // 计算新的尺寸
+                const newWidth = Math.max(20, Math.min(this.canvas.width * 2, layer.width * scaleFactor));
+                const newHeight = Math.max(20, Math.min(this.canvas.height * 2, layer.height * scaleFactor));
+                
+                // 保持中心点不变
+                const centerX = layer.x + layer.width / 2;
+                const centerY = layer.y + layer.height / 2;
+                
+                layer.width = newWidth;
+                layer.height = newHeight;
+                layer.x = centerX - newWidth / 2;
+                layer.y = centerY - newHeight / 2;
+                
+                // 确保图层不会超出画布边界
+                layer.x = Math.max(0, Math.min(this.canvas.width - layer.width, layer.x));
+                layer.y = Math.max(0, Math.min(this.canvas.height - layer.height, layer.y));
+                
+                this.renderCanvas();
+                this.saveHistory();
+                this.showStatus(`图层已${scaleFactor > 1 ? '放大' : '缩小'}`, 'success');
+            }
+
+            resetLayerScale(layerId) {
+                const layer = this.layers.find(l => l.id === layerId);
+                if (!layer) return;
+                
+                // 获取原始图片尺寸
+                const originalWidth = layer.image.width;
+                const originalHeight = layer.image.height;
+                
+                // 保持中心点不变
+                const centerX = layer.x + layer.width / 2;
+                const centerY = layer.y + layer.height / 2;
+                
+                layer.width = originalWidth;
+                layer.height = originalHeight;
+                layer.x = centerX - originalWidth / 2;
+                layer.y = centerY - originalHeight / 2;
+                
+                // 确保图层不会超出画布边界
+                layer.x = Math.max(0, Math.min(this.canvas.width - layer.width, layer.x));
+                layer.y = Math.max(0, Math.min(this.canvas.height - layer.height, layer.y));
+                
+                this.renderCanvas();
+                this.saveHistory();
+                this.showStatus('图层尺寸已重置', 'success');
+            }
+
+            // 一键排列图片方法
+            arrangeImages() {
+                if (this.layers.length === 0) {
+                    this.showStatus('没有可排列的图层！', 'error');
+                    return;
+                }
+                
+                // 保存当前状态，便于撤销
+                this.saveHistory();
+                
+                // 一排放10个图片
+                const imagesPerRow = 10;
+                
+                // 使用画布尺寸作为可用区域，保持与底图一致
+                const availableWidth = this.canvas.width - 100; // 左右各留50像素边距
+                const availableHeight = this.canvas.height - 100; // 上下各留50像素边距
+                
+                // 计算合适的图片大小，确保10张图片能在一行显示
+                const padding = 10; // 图片间距
+                const availableSpacePerImage = (availableWidth - (imagesPerRow - 1) * padding) / imagesPerRow;
+                const finalSize = Math.min(Math.floor(availableSpacePerImage), 100); // 最大100像素
+                
+                // 确保图片大小至少为20像素
+                const actualSize = Math.max(finalSize, 20);
+                
+                const startX = 50; // 起始X坐标
+                const startY = 50; // 起始Y坐标
+                
+                // 统一缩放并排列所有图层
+                this.layers.forEach((layer, index) => {
+                    // 缩放图片
+                    layer.width = actualSize;
+                    layer.height = actualSize;
+                    
+                    // 计算行列位置
+                    const row = Math.floor(index / imagesPerRow);
+                    const col = index % imagesPerRow;
+                    
+                    // 计算精确坐标，确保在底图范围内
+                    const x = startX + col * (actualSize + padding);
+                    const y = startY + row * (actualSize + padding);
+                    
+                    // 确保图片不超出底图范围
+                    layer.x = Math.min(x, this.canvas.width - actualSize - 50);
+                    layer.y = Math.min(y, this.canvas.height - actualSize - 50);
+                });
+                
+                this.renderCanvas();
+                this.renderLayersList();
+                this.showStatus(`成功排列 ${this.layers.length} 张图片，每行10个！`, 'success');
+            }
+            
+            // 画布点击事件处理，用于选中图层
+            handleCanvasClick(e) {
+                // 如果正在拖拽，不处理点击事件
+                if (this.isDragging) return;
+                
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // 找到最上层的可点击图层
+                for (let i = this.layers.length - 1; i >= 0; i--) {
+                    const layer = this.layers[i];
+                    if (layer.visible &&
+                        x >= layer.x && x <= layer.x + layer.width &&
+                        y >= layer.y && y <= layer.y + layer.height) {
+                        // 选中该图层
+                        this.selectLayer(layer.id);
+                        return; // 只选中最上层的图层
+                    }
+                }
+            }
+            
+            // 选中图层方法
+            selectLayer(layerId) {
+                this.selectedLayerId = layerId;
+                this.renderLayersList();
+                this.renderCanvas();
+                this.showStatus('图层已选中', 'success');
+                
+                // 注意：不再自动将图层移到最上层，避免图层位置频繁交换
+                // 如需将图层移到最上层，用户可以通过拖拽排序来实现
+            }
+            
+            deleteLayer(layerId) {
+                this.layers = this.layers.filter(l => l.id !== layerId);
+                // 如果删除的是当前选中的图层，清除选中状态
+                if (this.selectedLayerId === layerId) {
+                    this.selectedLayerId = null;
+                }
+                this.renderLayersList();
+                this.renderCanvas();
+                this.saveHistory();
+                this.showStatus('图层已删除', 'success');
+            }
+
+            clearLayers() {
+                if (this.layers.length === 0) return;
+                
+                if (confirm('确定要清空所有图层吗？')) {
+                    this.layers = [];
+                    this.renderLayersList();
+                    this.renderCanvas();
+                    this.saveHistory();
+                    this.showStatus('所有图层已清空', 'success');
+                    this.updateButtons();
+                }
+            }
+
+            // 修复画布显示与实际尺寸可能不一致的问题
+            getCanvasMousePos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                
+                // 计算画布的缩放比例
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                
+                // 计算鼠标在画布实际坐标系中的位置
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                
+                return { x, y };
+            }
+            
+            // 拖拽移动图层
+            startDrag(e) {
+                // 获取鼠标在画布实际坐标系中的位置
+                const { x, y } = this.getCanvasMousePos(e);
+                
+                // 找到最上层的可拖拽图层
+                for (let i = this.layers.length - 1; i >= 0; i--) {
+                    const layer = this.layers[i];
+                    if (layer.visible &&
+                        x >= layer.x && x <= layer.x + layer.width &&
+                        y >= layer.y && y <= layer.y + layer.height) {
+                        this.isDragging = true;
+                        this.dragLayer = layer;
+                        
+                        // 精确计算拖拽偏移量
+                        this.dragOffset.x = x - layer.x;
+                        this.dragOffset.y = y - layer.y;
+                        this.canvas.style.cursor = 'move';
+                        
+                        // 在画布上点击图片时触发聚焦效果
+                        this.selectLayer(layer.id);
+                        
+                        this.showStatus(`开始拖拽: ${layer.name}`, 'success');
+                        return; // 只处理最上层的图层
+                    }
+                }
+            }
+            
+            drag(e) {
+                if (!this.isDragging || !this.dragLayer) return;
+                
+                // 获取鼠标在画布实际坐标系中的位置
+                const { x, y } = this.getCanvasMousePos(e);
+                
+                // 计算新的图层位置，使用精确的偏移量
+                const newX = x - this.dragOffset.x;
+                const newY = y - this.dragOffset.y;
+                
+                // 确保图层不超出画布范围
+                this.dragLayer.x = Math.max(0, Math.min(this.canvas.width - this.dragLayer.width, newX));
+                this.dragLayer.y = Math.max(0, Math.min(this.canvas.height - this.dragLayer.height, newY));
+                
+                this.renderCanvas();
+            }
+
+            endDrag() {
+                if (this.isDragging) {
+                    // 保存当前拖动的图层ID，确保聚焦效果正确
+                    const draggedLayerId = this.dragLayer?.id;
+                    
+                    this.isDragging = false;
+                    this.dragLayer = null;
+                    this.canvas.style.cursor = 'default';
+                    this.saveHistory();
+                    
+                    // 确保聚焦效果仍然正确应用在刚刚拖动的图层上
+                    if (draggedLayerId) {
+                        this.selectedLayerId = draggedLayerId;
+                        this.renderLayersList();
+                        this.renderCanvas();
+                    }
+                }
+            }
+
+            handleWheelScale(e) {
+                e.preventDefault();
+                
+                let targetLayer = null;
+                
+                // 只有当选中了图层，且鼠标在选中图层范围内时才缩放
+                if (this.selectedLayerId) {
+                    // 获取鼠标在画布实际坐标系中的位置
+                    const { x, y } = this.getCanvasMousePos(e);
+                    
+                    // 找到选中的图层
+                    const selectedLayer = this.layers.find(layer => layer.id === this.selectedLayerId);
+                    
+                    // 检查鼠标是否在选中图层的范围内
+                    if (selectedLayer && selectedLayer.visible &&
+                        x >= selectedLayer.x && x <= selectedLayer.x + selectedLayer.width &&
+                        y >= selectedLayer.y && y <= selectedLayer.y + selectedLayer.height) {
+                        targetLayer = selectedLayer;
+                    }
+                }
+                
+                if (targetLayer) {
+                    // 根据滚轮方向确定缩放因子
+                    const scaleFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                    this.scaleLayer(targetLayer.id, scaleFactor);
+                    
+                    this.showStatus(`滚轮缩放: ${targetLayer.name}`, 'success');
+                }
+            }
+
+            handleKeyboardShortcuts(e) {
+                // 只在没有输入框聚焦时处理快捷键
+                if (document.activeElement.tagName === 'INPUT') return;
+                
+                let handled = false;
+                
+                // 找到当前拖拽的图层或最上层的图层
+                let targetLayer = this.dragLayer;
+                if (!targetLayer && this.layers.length > 0) {
+                    // 找到最上层的可见图层
+                    for (let i = this.layers.length - 1; i >= 0; i--) {
+                        if (this.layers[i].visible) {
+                            targetLayer = this.layers[i];
+                            break;
+                        }
+                    }
+                }
+                
+                if (!targetLayer) return;
+                
+                switch (e.key) {
+                    case '+':
+                    case '=':
+                        this.scaleLayer(targetLayer.id, 1.1);
+                        handled = true;
+                        break;
+                    case '-':
+                    case '_':
+                        this.scaleLayer(targetLayer.id, 0.9);
+                        handled = true;
+                        break;
+                    case '0':
+                        this.resetLayerScale(targetLayer.id);
+                        handled = true;
+                        break;
+                }
+                
+                if (handled) {
+                    e.preventDefault();
+                }
+            }
+
+            // 图层排序
+            handleDragStart(e) {
+                e.target.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', e.target.innerHTML);
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                
+                const draggingElement = document.querySelector('.dragging');
+                const afterElement = this.getDragAfterElement(this.layerList, e.clientY);
+                
+                if (afterElement == null) {
+                    this.layerList.appendChild(draggingElement);
+                } else {
+                    this.layerList.insertBefore(draggingElement, afterElement);
+                }
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                this.reorderLayers();
+            }
+
+            handleDragEnd(e) {
+                e.target.classList.remove('dragging');
+            }
+
+            getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll('.layer-item:not(.dragging)')];
+                
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            reorderLayers() {
+                const layerItems = this.layerList.querySelectorAll('.layer-item');
+                const newOrder = [];
+                
+                layerItems.forEach(item => {
+                    const layerId = parseInt(item.dataset.layerId);
+                    const layer = this.layers.find(l => l.id === layerId);
+                    if (layer) {
+                        newOrder.push(layer);
+                    }
+                });
+                
+                this.layers = newOrder.reverse(); // 反转回来，因为显示顺序是反的
+                this.renderCanvas();
+                this.saveHistory();
+            }
+
+            // 历史记录管理
+            saveHistory() {
+                const state = {
+                    layers: JSON.parse(JSON.stringify(this.layers)),
+                    backgroundImage: this.backgroundImage
+                };
+                
+                this.history = this.history.slice(0, this.historyIndex + 1);
+                this.history.push(state);
+                this.historyIndex++;
+                
+                // 限制历史记录数量
+                if (this.history.length > 50) {
+                    this.history.shift();
+                    this.historyIndex--;
+                }
+                
+                this.updateButtons();
+            }
+
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    const state = this.history[this.historyIndex];
+                    this.restoreState(state);
+                    this.showStatus('已撤销', 'info');
+                }
+            }
+
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    const state = this.history[this.historyIndex];
+                    this.restoreState(state);
+                    this.showStatus('已重做', 'info');
+                }
+            }
+
+            restoreState(state) {
+                this.layers = JSON.parse(JSON.stringify(state.layers));
+                this.backgroundImage = state.backgroundImage;
+                this.renderLayersList();
+                this.renderCanvas();
+                this.updateButtons();
+            }
+
+            exportImage() {
+                const link = document.createElement('a');
+                link.download = `finalpic_${new Date().getTime()}.png`;
+                link.href = this.canvas.toDataURL('image/png');
+                link.click();
+                this.showStatus('图片导出成功！', 'success');
+            }
+
+            updateButtons() {
+                this.undoBtn.disabled = this.historyIndex <= 0;
+                this.redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+                this.exportBtn.disabled = this.layers.length === 0 && !this.backgroundImage;
+            }
+
+            showStatus(message, type) {
+                this.status.innerHTML = `<div class="status ${type}">${message}</div>`;
+                setTimeout(() => {
+                    this.status.innerHTML = '';
+                }, 3000);
+            }
+        }
+
+        // 初始化应用
+        const composer = new ImageComposer();
+    </script>
+</body>
+</html>
