@@ -503,6 +503,15 @@
     // 初始化取色器
     initColorPicker();
 
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+    }
+
     async function fileToImage(f){
       const url = URL.createObjectURL(f);
       const img = new Image();
@@ -637,14 +646,11 @@
               successCount++;
               
               // 存储到localStorage，供第三步使用
-              const reader = new FileReader();
-              reader.onload = (e) => {
-                transparentImages.push({
-                  name: outName,
-                  dataUrl: e.target.result
-                });
-              };
-              reader.readAsDataURL(blob);
+              const dataUrl = await blobToDataUrl(blob);
+              transparentImages.push({
+                name: outName,
+                dataUrl
+              });
             } catch (error) {
               console.error('导出失败:', error);
               alert(`导出 ${f.name} 失败: ${error.message}`);
@@ -697,14 +703,11 @@
         zip.file(outName, blob);
         
         // 存储到localStorage，供第三步使用
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          transparentImages.push({
-            name: outName,
-            dataUrl: e.target.result
-          });
-        };
-        reader.readAsDataURL(blob);
+        const dataUrl = await blobToDataUrl(blob);
+        transparentImages.push({
+          name: outName,
+          dataUrl
+        });
       }
       const zipBlob = await zip.generateAsync({type:"blob"});
       const a = document.createElement("a");

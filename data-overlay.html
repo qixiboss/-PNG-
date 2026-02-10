@@ -512,6 +512,7 @@
                     • 在画布上鼠标悬停在图片上，使用滚轮快速缩放<br>
                     • 选中图层后，按键盘 <strong>+/-</strong> 键缩放，按 <strong>0</strong> 键重置<br>
                     • 拖拽图片可移动位置，支持撤销/重做操作
+                </div>
             </div>
         </div>
     </div>
@@ -824,6 +825,37 @@
                         this.ctx.setLineDash([]);
                     }
                 }
+            }
+
+            loadImageFromDataUrl(dataUrl) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = () => reject(new Error('图片加载失败'));
+                    img.src = dataUrl;
+                });
+            }
+
+            serializeLayers() {
+                return this.layers.map(layer => ({
+                    id: layer.id,
+                    name: layer.name,
+                    dataUrl: layer.dataUrl,
+                    opacity: layer.opacity,
+                    x: layer.x,
+                    y: layer.y,
+                    width: layer.width,
+                    height: layer.height,
+                    visible: layer.visible
+                }));
+            }
+
+            serializeBackground() {
+                if (!this.backgroundImage) return null;
+                return {
+                    name: this.backgroundImage.name,
+                    dataUrl: this.backgroundImage.dataUrl
+                };
             }
 
             updateLayerOpacity(layerId, opacity) {
@@ -1240,8 +1272,8 @@
             // 历史记录管理
             saveHistory() {
                 const state = {
-                    layers: JSON.parse(JSON.stringify(this.layers)),
-                    backgroundImage: this.backgroundImage
+                    layers: this.serializeLayers(),
+                    backgroundImage: this.serializeBackground()
                 };
                 
                 this.history = this.history.slice(0, this.historyIndex + 1);
@@ -1257,27 +1289,47 @@
                 this.updateButtons();
             }
 
-            undo() {
+            async undo() {
                 if (this.historyIndex > 0) {
                     this.historyIndex--;
                     const state = this.history[this.historyIndex];
-                    this.restoreState(state);
+                    await this.restoreState(state);
                     this.showStatus('已撤销', 'info');
                 }
             }
 
-            redo() {
+            async redo() {
                 if (this.historyIndex < this.history.length - 1) {
                     this.historyIndex++;
                     const state = this.history[this.historyIndex];
-                    this.restoreState(state);
+                    await this.restoreState(state);
                     this.showStatus('已重做', 'info');
                 }
             }
 
-            restoreState(state) {
-                this.layers = JSON.parse(JSON.stringify(state.layers));
-                this.backgroundImage = state.backgroundImage;
+            async restoreState(state) {
+                if (state.backgroundImage) {
+                    const image = await this.loadImageFromDataUrl(state.backgroundImage.dataUrl);
+                    this.backgroundImage = {
+                        ...state.backgroundImage,
+                        image
+                    };
+                    this.canvas.width = image.width;
+                    this.canvas.height = image.height;
+                } else {
+                    this.backgroundImage = null;
+                }
+
+                const restoredLayers = [];
+                for (const layer of state.layers) {
+                    const image = await this.loadImageFromDataUrl(layer.dataUrl);
+                    restoredLayers.push({
+                        ...layer,
+                        image
+                    });
+                }
+
+                this.layers = restoredLayers;
                 this.renderLayersList();
                 this.renderCanvas();
                 this.updateButtons();
