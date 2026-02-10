@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>跑步数据叠加器 - 工具主页</title>
     <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5f5f7;
+            --card: #ffffff;
+            --ink: #101014;
+            --muted: #5b6070;
+            --accent: #5f5bff;
+            --accent-dark: #3b35f5;
+            --border: rgba(16, 16, 20, 0.08);
+            --shadow: 0 24px 60px rgba(17, 19, 30, 0.12);
+            --soft-shadow: 0 12px 30px rgba(17, 19, 30, 0.08);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,247 +25,203 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 40px 20px 80px;
         }
 
         .container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            max-width: 800px;
+            background: var(--card);
+            border-radius: 28px;
+            padding: 48px;
+            box-shadow: var(--shadow);
+            max-width: 920px;
             width: 100%;
+            border: 1px solid var(--border);
         }
 
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-            font-weight: 700;
+        .hero {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 32px;
         }
 
-        .subtitle {
+        .hero-text h1 {
+            font-size: clamp(2.2rem, 3vw, 3rem);
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+
+        .hero-text p {
+            color: var(--muted);
+            font-size: 1.05rem;
+            line-height: 1.6;
+            max-width: 520px;
+        }
+
+        .hero-badge {
+            background: linear-gradient(135deg, rgba(95, 91, 255, 0.15), rgba(95, 91, 255, 0.02));
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            color: var(--accent-dark);
+            font-weight: 600;
+            align-self: flex-start;
+        }
+
+        .demo-video-container {
+            margin: 32px 0 40px;
+            padding: 28px;
+            background: #fafafb;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            box-shadow: var(--soft-shadow);
             text-align: center;
-            color: #666;
-            margin-bottom: 40px;
-            font-size: 1.1em;
+        }
+
+        .demo-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+
+        .demo-video {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(12, 12, 24, 0.18);
+            border: 1px solid rgba(15, 15, 30, 0.08);
+        }
+
+        .video-description {
+            color: var(--muted);
+            font-size: 0.95rem;
+            margin-top: 14px;
         }
 
         .tools-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-            margin-top: 30px;
         }
 
         .tool-card {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            border-radius: 15px;
-            padding: 30px;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
+            background: #fafafb;
+            border-radius: 18px;
+            padding: 26px;
+            text-align: left;
             text-decoration: none;
             color: inherit;
-            border: 2px solid transparent;
+            border: 1px solid var(--border);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(95, 91, 255, 0.15), transparent 50%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .tool-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
-            border-color: #667eea;
+            transform: translateY(-6px);
+            box-shadow: var(--soft-shadow);
+            border-color: rgba(95, 91, 255, 0.3);
+        }
+
+        .tool-card:hover::after {
+            opacity: 1;
         }
 
         .tool-icon {
-            font-size: 3em;
-            margin-bottom: 15px;
+            font-size: 2.4rem;
+            margin-bottom: 12px;
             display: block;
         }
 
         .tool-title {
-            font-size: 1.3em;
+            font-size: 1.2rem;
             font-weight: 600;
-            color: #333;
             margin-bottom: 10px;
         }
 
-        .tool-description {
-            color: #666;
-            font-size: 0.95em;
-            line-height: 1.5;
-        }
-
-        .header-decoration {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header-decoration::before,
-        .header-decoration::after {
-            content: '';
-            font-size: 2em;
-            margin: 0 20px;
-            animation: bounce 2s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {
-                transform: translateY(0);
-            }
-            40% {
-                transform: translateY(-10px);
-            }
-            60% {
-                transform: translateY(-5px);
-            }
-        }
-
-        /* 演示视频样式 */
-        .demo-video-container {
-            margin: 30px 0;
-            text-align: center;
-        }
-        
-        .demo-title {
-            font-size: 1.5em;
-            color: #333;
-            margin-bottom: 20px;
+        .tool-title span {
+            font-size: 0.75rem;
+            color: var(--accent-dark);
             font-weight: 600;
+            margin-left: 6px;
         }
-        
-        .demo-video {
-            width: 100%;
-            max-width: 600px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            margin-bottom: 15px;
+
+        .tool-description {
+            color: var(--muted);
+            line-height: 1.5;
+            font-size: 0.95rem;
         }
-        
-        .video-description {
-            color: #666;
-            font-size: 0.95em;
-            margin-top: 10px;
-        }
-        
+
         @media (max-width: 768px) {
             .container {
-                padding: 30px 20px;
+                padding: 32px 24px;
             }
-            
-            h1 {
-                font-size: 2em;
+
+            .hero {
+                flex-direction: column;
             }
-            
-            .tools-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .demo-video {
-                max-width: 100%;
+
+            .demo-video-container {
+                padding: 20px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header-decoration">
-            <h1>跑步数据叠加器</h1>
+        <div class="hero">
+            <div class="hero-text">
+                <h1>跑步数据叠加器</h1>
+                <p>以清爽的现代布局整理你的影像处理流程，快速完成裁切、抠图到数据叠加的完整链路。</p>
+            </div>
+            <span class="hero-badge">All-in-One Tools</span>
         </div>
-        
-        
-        <!-- 演示视频 -->
+
         <div class="demo-video-container">
             <h2 class="demo-title">📹 如何使用</h2>
             <video class="demo-video" controls loop muted>
                 <source src="how to use.mp4" type="video/mp4">
                 您的浏览器不支持视频播放。
             </video>
-            <p class="video-description">观看演示视频，了解工具的完整使用流程</p>
+            <p class="video-description">观看演示视频，了解工具的完整使用流程。</p>
         </div>
-        
+
         <div class="tools-grid">
-             <a href="batch-crop.html" class="tool-card">
+            <a href="batch-crop.html" class="tool-card">
                 <span class="tool-icon">✂️</span>
-                <div class="tool-title">批量图片裁切 <span style="color: #667eea; font-size: 0.7em;">[Step 1]</span></div>
-                <div class="tool-description">一键批量裁切多张图片为相同尺寸，提高图片处理效率</div>
+                <div class="tool-title">批量图片裁切 <span>[Step 1]</span></div>
+                <div class="tool-description">一键批量裁切多张图片为相同尺寸，提高图片处理效率。</div>
             </a>
-            
+
             <a href="bg-remove.html" class="tool-card">
                 <span class="tool-icon">🎨</span>
-                <div class="tool-title">黑底转透明 <span style="color: #667eea; font-size: 0.7em;">[Step 2]</span></div>
-                <div class="tool-description">批量将黑色背景转换为透明背景，并导出为PNG格式</div>
+                <div class="tool-title">黑底转透明 <span>[Step 2]</span></div>
+                <div class="tool-description">批量将黑色背景转换为透明背景，并导出为PNG格式。</div>
             </a>
-            
-           
-            
+
             <a href="data-overlay.html" class="tool-card">
                 <span class="tool-icon">📊</span>
-                <div class="tool-title">跑步数据叠加 <span style="color: #667eea; font-size: 0.7em;">[Step 3]</span></div>
-                <div class="tool-description">将跑步数据叠加到视频或图片上，创建专业的运动数据展示效果</div>
+                <div class="tool-title">跑步数据叠加 <span>[Step 3]</span></div>
+                <div class="tool-description">将跑步数据叠加到视频或图片上，创建专业的运动数据展示效果。</div>
             </a>
         </div>
     </div>
-
-    <script>
-        // 添加页面加载动画
-        document.addEventListener('DOMContentLoaded', function() {
-            const cards = document.querySelectorAll('.tool-card');
-            cards.forEach((card, index) => {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(30px)';
-                setTimeout(() => {
-                    card.style.transition = 'all 0.6s ease';
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateY(0)';
-                }, index * 200);
-            });
-        });
-
-        // 添加点击反馈效果
-        document.querySelectorAll('.tool-card').forEach(card => {
-            card.addEventListener('click', function(e) {
-                // 创建涟漪效果
-                const ripple = document.createElement('div');
-                ripple.style.position = 'absolute';
-                ripple.style.borderRadius = '50%';
-                ripple.style.background = 'rgba(102, 126, 234, 0.3)';
-                ripple.style.transform = 'scale(0)';
-                ripple.style.animation = 'ripple 0.6s linear';
-                ripple.style.left = (e.clientX - this.offsetLeft - 25) + 'px';
-                ripple.style.top = (e.clientY - this.offsetTop - 25) + 'px';
-                ripple.style.width = '50px';
-                ripple.style.height = '50px';
-                ripple.style.pointerEvents = 'none';
-                
-                this.style.position = 'relative';
-                this.style.overflow = 'hidden';
-                this.appendChild(ripple);
-                
-                setTimeout(() => {
-                    ripple.remove();
-                }, 600);
-            });
-        });
-
-        // 添加涟漪动画样式
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes ripple {
-                to {
-                    transform: scale(4);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    </script>
 </body>
 </html>
